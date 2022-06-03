@@ -7,7 +7,7 @@ import "./usersData.scss";
 
 const UsersTableComponent = () => {
   const dispatch = useDispatch();
-  const { usersList } = useSelector((state) => state.users);
+  const { usersList, dataEndCheck } = useSelector((state) => state.users);
   const [columns, setColumns] = useState(null);
 
   useEffect(() => {
@@ -44,7 +44,7 @@ const UsersTableComponent = () => {
 
   return (
     <div className="users-Data-style">
-      {columns && usersList.length > 0 ? (
+      {columns && usersList.length > 0 && (
         <div>
           <Table
             columns={columns}
@@ -52,13 +52,15 @@ const UsersTableComponent = () => {
             tableHeading={"Users Data"}
           />
           <div className="see-more-style">
-            <Button onClick={handleSeeMore}>See More</Button>
+            {!dataEndCheck ? (
+              <Button onClick={handleSeeMore}>See More</Button>
+            ) : (
+              <p style={{ textAlign: "center", fontSize: "12px" }}>
+                No More Data Available.
+              </p>
+            )}
           </div>
         </div>
-      ) : (
-        <p style={{ textAlign: "center", fontSize: "12px" }}>
-          No Data Added Yet.
-        </p>
       )}
     </div>
   );

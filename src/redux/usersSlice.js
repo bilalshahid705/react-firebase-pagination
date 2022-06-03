@@ -7,37 +7,44 @@ export const fetchUsersData = createAsyncThunk(
     try {
       const userCollectionRef = firestore.collection("users");
       const lastDocId = getState().users.lastDocId;
+      const dataEndValue = getState().users.dataEndCheck;
 
-      let usersRef;
-      if (!lastDocId) {
-        usersRef = await userCollectionRef
-          .orderBy("name", "asc")
-          .limit(3)
-          .get();
-      } else {
-        const lastDocData = await userCollectionRef.doc(lastDocId).get();
-        usersRef = await userCollectionRef
-          .orderBy("name", "asc")
-          .startAfter(lastDocData.data().name)
-          .limit(3)
-          .get();
-      }
-
-      let usersData = [];
-      if (!usersRef.empty) {
-        for (let i in usersRef.docs) {
-          usersData.push(usersRef.docs[i].data());
-        }
+      console.log("dataEndValue", dataEndValue);
+      if (!dataEndValue) {
+        let usersRef;
         if (!lastDocId) {
-          const last = usersRef.docs[usersRef.docs.length - 1].id;
-          dispatch(usersLastDocumentId(last));
-          return usersData;
+          usersRef = await userCollectionRef
+            .orderBy("name", "asc")
+            .limit(3)
+            .get();
         } else {
-          const pastData = getState().users.usersList;
-          const newData = [...pastData, ...usersData];
+          const lastDocData = await userCollectionRef.doc(lastDocId).get();
+          usersRef = await userCollectionRef
+            .orderBy("name", "asc")
+            .startAfter(lastDocData.data().name)
+            .limit(3)
+            .get();
+        }
+
+        console.log("usersRef", usersRef);
+
+        let usersData = [];
+        if (!usersRef.empty) {
+          for (let i in usersRef.docs) {
+            usersData.push(usersRef.docs[i].data());
+          }
           const last = usersRef.docs[usersRef.docs.length - 1].id;
           dispatch(usersLastDocumentId(last));
-          return newData;
+          if (!lastDocId) {
+            return usersData;
+          } else {
+            const pastData = getState().users.usersList;
+            const newData = [...pastData, ...usersData];
+            return newData;
+          }
+        } else {
+          dispatch(usersNoMoreData(true));
+          return getState().users.usersList;
         }
       }
     } catch (error) {
@@ -48,10 +55,18 @@ export const fetchUsersData = createAsyncThunk(
 
 export const usersSlice = createSlice({
   name: "users",
-  initialState: { loading: false, usersList: [], lastDocId: "" },
+  initialState: {
+    loading: false,
+    usersList: [],
+    lastDocId: "",
+    dataEndCheck: false,
+  },
   reducers: {
     usersLastDocumentId(state, action) {
       state.lastDocId = action.payload;
+    },
+    usersNoMoreData(state, action) {
+      state.dataEndCheck = action.payload;
     },
   },
   extraReducers: {
@@ -60,7 +75,6 @@ export const usersSlice = createSlice({
     },
     [fetchUsersData.fulfilled]: (state, action) => {
       state.usersList = action.payload;
-      // state.usersList = [...state.users, ...action.payload];
       state.loading = false;
     },
     [fetchUsersData.rejected]: (state, action) => {
@@ -70,6 +84,6 @@ export const usersSlice = createSlice({
   },
 });
 
-export const { usersLastDocumentId } = usersSlice.actions;
+export const { usersLastDocumentId, usersNoMoreData } = usersSlice.actions;
 
 export default usersSlice.reducer;
