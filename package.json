@@ -48,5 +48,8 @@
   },
   "devDependencies": {
     "node-sass": "^7.0.1"
+  },
+  "resolutions": {
+    "autoprefixer": "10.4.5"
   }
 }
