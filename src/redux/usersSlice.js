@@ -1,22 +1,45 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { firestore } from "../firebase/firebaseConfig";
+// import { usersLastDocument } from "./userLastSlices";
 
 export const fetchUsersData = createAsyncThunk(
   "pagination",
-  async (payload, { getState, dispatch, rejectWithValue }) => {
+  async (thunkAPI, { getState, dispatch }) => {
     try {
-      const usersRef = await firestore
-        .collection("users")
-        .orderBy("name", "asc")
-        .limit(3)
-        .get();
+      const userCollectionRef = firestore.collection("users");
+      const lastDocId = getState().users.lastDocId;
+
+      let usersRef;
+      if (!lastDocId) {
+        usersRef = await userCollectionRef
+          .orderBy("name", "asc")
+          .limit(3)
+          .get();
+      } else {
+        const lastDocData = await userCollectionRef.doc(lastDocId).get();
+        usersRef = await userCollectionRef
+          .orderBy("name", "asc")
+          .startAfter(lastDocData.data().name)
+          .limit(3)
+          .get();
+      }
 
       let usersData = [];
       if (!usersRef.empty) {
         for (let i in usersRef.docs) {
           usersData.push(usersRef.docs[i].data());
         }
-        return usersData;
+        if (!lastDocId) {
+          const last = usersRef.docs[usersRef.docs.length - 1].id;
+          dispatch(usersLastDocumentId(last));
+          return usersData;
+        } else {
+          const pastData = getState().users.usersList;
+          const newData = [...pastData, ...usersData];
+          const last = usersRef.docs[usersRef.docs.length - 1].id;
+          dispatch(usersLastDocumentId(last));
+          return newData;
+        }
       }
     } catch (error) {
       return error;
@@ -26,13 +49,19 @@ export const fetchUsersData = createAsyncThunk(
 
 export const usersSlice = createSlice({
   name: "users",
-  initialState: { loading: false, usersList: [] },
+  initialState: { loading: false, usersList: [], lastDocId: "" },
+  reducers: {
+    usersLastDocumentId(state, action) {
+      state.lastDocId = action.payload;
+    },
+  },
   extraReducers: {
     [fetchUsersData.pending]: (state, action) => {
       state.loading = true;
     },
     [fetchUsersData.fulfilled]: (state, action) => {
       state.usersList = action.payload;
+      // state.usersList = [...state.users, ...action.payload];
       state.loading = false;
     },
     [fetchUsersData.rejected]: (state, action) => {
@@ -41,5 +70,7 @@ export const usersSlice = createSlice({
     },
   },
 });
+
+export const { usersLastDocumentId } = usersSlice.actions;
 
 export default usersSlice.reducer;

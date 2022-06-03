@@ -10,8 +10,6 @@ const UsersTableComponent = () => {
   const { usersList } = useSelector((state) => state.users);
   const [columns, setColumns] = useState(null);
 
-  console.log("usersList", usersList);
-
   useEffect(() => {
     dispatch(fetchUsersData());
   }, [dispatch]);
