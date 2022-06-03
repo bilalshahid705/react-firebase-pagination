@@ -1,6 +1,5 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { firestore } from "../firebase/firebaseConfig";
-// import { usersLastDocument } from "./userLastSlices";
 
 export const fetchUsersData = createAsyncThunk(
   "pagination",
